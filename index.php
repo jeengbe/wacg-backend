@@ -2,6 +2,7 @@
 header("Access-Control-Allow-Origin: *");
 ?>
 <?php
+  date_default_timezone_set("UTC");
   include __DIR__."/colors.php";
   include __DIR__."/utils.php";
   include __DIR__."/wa.php";
@@ -11,7 +12,7 @@ header("Access-Control-Allow-Origin: *");
   const ME = "Jesper";
   // Separate them and me
   $options = [
-    "separate" => true
+    "separate" => false
   ];
 
   $options = array_merge(json_decode($_POST["options"] ?? "{}", true), $options);
@@ -23,11 +24,10 @@ header("Access-Control-Allow-Origin: *");
       case "contacts":
         $inc = "contacts.php";
         break;
-      case "msgsPerWeek":
-        $inc = "charts/msgsPerWeek.php";
-        break;
-      case "msgTimes":
-        $inc = "charts/msgTimes.php";
+      default:
+        if(preg_match("/^[a-zA-Z0-9_-]+$/", $url[0]) === 1) {
+          $inc = "charts/{$url[0]}.php";
+        }
         break;
     }
     if($inc !== null) {

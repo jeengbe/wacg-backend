@@ -1,7 +1,7 @@
 <?php
 class WA {
   /** @var SQLite3 */
-  private static $db;
+  protected static $db;
 
   function __construct() {
     self::$db = new SQLite3(__DIR__ . "/databases/wa.db");
@@ -18,7 +18,7 @@ class WA {
    */
   static function getContacts($messages = 0) {
     $r = [];
-    $sql = self::$db->query("SELECT con._id as id, con.jid as jid, con.status as status, con.status_timestamp as statusTimestamp, number as num, con.display_name as displayName FROM wa_contacts as con WHERE number IS NOT NULL AND con.is_whatsapp_user = 1 order by displayName");
+    $sql = self::$db->query("SELECT con._id as id, con.jid as jid, con.status as status, con.status_timestamp as statusTimestamp, number as num, con.display_name as displayName FROM wa_contacts as con WHERE number IS NOT NULL order by displayName");
     while ($row = $sql->fetchArray(SQLITE3_ASSOC)) {
       $r[] = new Contact($row, $messages);
     };
@@ -31,11 +31,11 @@ class WA {
    * @return Contact[]
    */
   static function getContactsByJids($jids, $messages = -1) {
-    $contacts = [];
+    $r = [];
     foreach($jids as $jid) {
-      $contacts[] = self::getContactByJid($jid, $messages);
+      $r[] = self::getContactByJid($jid, $messages);
     }
-    return $contacts;
+    return $r;
   }
 
   /**
@@ -44,9 +44,74 @@ class WA {
    * @return Contact
    */
   static function getContactByJid($jid, $messages = -1) {
-    $sql = self::$db->query("SELECT con._id as id, con.jid as jid, con.status as status, con.status_timestamp as statusTimestamp, number as num, con.display_name as displayName FROM wa_contacts as con WHERE number IS NOT NULL AND con.is_whatsapp_user = 1 AND jid = '$jid'");
+    $sql = self::$db->query("SELECT con._id as id, con.jid as jid, con.status as status, con.status_timestamp as statusTimestamp, number as num, con.display_name as displayName FROM wa_contacts as con WHERE number IS NOT NULL AND jid = '$jid'");
     if ($row = $sql->fetchArray()) {
       return new Contact($row, $messages);
+    }
+    throw new Exception("Jid not found");
+  }
+
+  /**
+   * @param int $messages Messages to load, -1 for all
+   * @return Group[]
+   */
+  static function getGroups($messages = 0) {
+    $r = [];
+    $sql = self::$db->query("SELECT grp._id as id, grp.jid as jid, grp.display_name as displayName, grpd.description as description FROM wa_contacts as grp LEFT JOIN wa_group_descriptions as grpd ON grp.jid = grpd.jid WHERE number IS NULL AND displayName IS NOT NULL order by displayName");
+    while ($row = $sql->fetchArray(SQLITE3_ASSOC)) {
+      $r[] = new Group($row, $messages);
+    };
+    return $r;
+  }
+
+  /**
+   * @param string[] $jids
+   * @param int $messages Messages to load, -1 for all
+   * @return Group[]
+   */
+  static function getGroupsByJids($jids, $messages = -1) {
+    $r = [];
+    foreach ($jids as $jid) {
+      $r[] = self::getGroupByJid($jid, $messages);
+    }
+    return $r;
+  }
+
+  /**
+   * @param string $jid
+   * @param int $messages Messages to load, -1 for all
+   * @return Group
+   */
+  static function getGroupByJid($jid, $messages = -1) {
+    $sql = self::$db->query("SELECT grp._id as id, grp.jid as jid, grp.display_name as displayName, grpd.description as description FROM wa_contacts as grp LEFT JOIN wa_group_descriptions as grpd ON grp.jid = grpd.jid WHERE number IS NULL AND displayName IS NOT NULL AND jid = '$jid'");
+    if ($row = $sql->fetchArray()) {
+      return new Group($row, $messages);
+    }
+    throw new Exception("Jid not found");
+  }
+
+  /**
+   * @param string[] $jids
+   * @param int $messages Messages to load, -1 for all
+   * @return RawMessageable[]
+   */
+  static function getMessageablesByJids($jids, $messages = -1) {
+    $r = [];
+    foreach ($jids as $jid) {
+      $r[] = self::getMessageableByJid($jid, $messages);
+    }
+    return $r;
+  }
+
+  /**
+   * @param string $jid
+   * @param int $messages Messages to load, -1 for all
+   * @return RawMessageable
+   */
+  static function getMessageableByJid($jid, $messages = -1) {
+    $sql = self::$db->query("SELECT msg._id as id, msg.jid as jid, msg.display_name as displayName FROM wa_contacts as msg WHERE jid = '$jid'");
+    if ($row = $sql->fetchArray()) {
+      return new RawMessageable($row, $messages);
     }
     throw new Exception("Jid not found");
   }
@@ -68,7 +133,7 @@ class WA {
 
 class MsgStore {
   /** @var SQLite3 */
-  private static $db;
+  protected static $db;
 
   function __construct() {
     self::$db = new SQLite3(__DIR__ . "/databases/msgstore.db");
@@ -86,7 +151,7 @@ class MsgStore {
    */
   static function getMessagesWithJid($jid, $messages) {
     $r = [];
-    $sql = self::$db->query("SELECT msg.timestamp as timestamp, key_from_me as me FROM messages as msg WHERE key_remote_jid = '$jid' AND msg.status NOT IN (6) ORDER BY msg._id ASC" . ($messages != -1 ? " LIMIT $messages" : ""));
+    $sql = self::$db->query("SELECT msg.timestamp as timestamp, data, key_from_me as me FROM messages as msg WHERE key_remote_jid = '$jid' AND msg.status NOT IN (6) ORDER BY msg._id ASC" . ($messages != -1 ? " LIMIT $messages" : ""));
     while ($row = $sql->fetchArray()) {
       $r[] = new Message($row);
     }
@@ -108,20 +173,13 @@ class MsgStore {
   }
 }
 
-class Contact {
+abstract class Messageable {
   /** @var string */
-  private $jid;
+  protected $jid;
   /** @var string */
-  private $status;
-  /** @var DateTime */
-  private $statusTimestamp;
-  /** @var string */
-  private $num;
-  /** @var string */
-  private $displayName;
-
+  protected $displayName;
   /** @var Message[] */
-  private $messages;
+  protected $messages;
 
   /**
    * @param array $row Corresponding row in wa.db:wa_contacts
@@ -129,15 +187,11 @@ class Contact {
    */
   function __construct($row, $messages = -1) {
     $this->jid              = $row["jid"];
-    $this->status           = $row["status"];
-    $this->statusTimestamp  = new DateTime();
-    $this->statusTimestamp->setTimestamp($row["statusTimestamp"] / 1000);
-    $this->num              = $row["num"];
     $this->displayName      = $row["displayName"];
     $this->loadMessages($messages);
   }
 
-  private function loadMessages($messages) {
+  protected function loadMessages($messages) {
     $this->messages = MsgStore::getMessagesWithJid($this->jid, $messages);
   }
 
@@ -147,6 +201,39 @@ class Contact {
   function getJid() {
     return $this->jid;
   }
+
+  /**
+   * @return string
+   */
+  function getDisplayName() {
+    return $this->displayName;
+  }
+  /**
+   * @return Message[]
+   */
+  function getMessages() {
+    return $this->messages;
+  }
+}
+
+class RawMessageable extends Messageable {}
+
+class Contact extends Messageable {
+  /** @var string */
+  protected $status;
+  /** @var DateTime */
+  protected $statusTimestamp;
+  /** @var string */
+  protected $num;
+
+  function __construct($row, $messages = -1) {
+    parent::__construct($row, $messages);
+    $this->status           = $row["status"];
+    $this->statusTimestamp  = new DateTime();
+    $this->statusTimestamp->setTimestamp($row["statusTimestamp"] / 1000);
+    $this->num              = $row["num"];
+  }
+
   /**
    * @return string
    */
@@ -165,35 +252,38 @@ class Contact {
   function getNum() {
     return $this->num;
   }
+}
+
+class Group extends Messageable {
+  /** @var string */
+  protected $description;
+
+  function __construct($row, $messages = -1) {
+    parent::__construct($row, $messages);
+    $this->description = $row["description"];
+  }
+
   /**
    * @return string
    */
-  function getDisplayName() {
-    return $this->displayName;
-  }
-  /**
-   * @return Message[]
-   */
-  function getMessages() {
-    return $this->messages;
-  }
-
-
-  function __toString(): string {
-    return "[jid => {$this->jid}, status => {$this->status}, num => {$this->num}, display_name => {$this->displayName}]";
+  function getDescription() {
+    return $this->description;
   }
 }
 
 class Message {
   /** @var DateTime */
-  private $timestamp;
+  protected $timestamp;
   /** @var boolean */
-  private $me;
+  protected $me;
+  /** @var string */
+  protected $data;
 
   function __construct($row) {
     $this->timestamp    = new DateTime();
     $this->timestamp->setTimestamp($row["timestamp"] / 1000);
     $this->me           = (bool) $row["me"];
+    $this->data         = $row["data"];
   }
 
   /**
@@ -208,5 +298,12 @@ class Message {
    */
   function isMe() {
     return $this->me;
+  }
+
+  /**
+   * @return string
+   */
+  function getData() {
+    return $this->data;
   }
 }

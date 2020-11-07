@@ -3,7 +3,7 @@
 $jid = $_POST["jid"];
 $sets = $_POST["sets"]-1;
 
-$con = WA::getContactByJid($jid);
+$con = WA::getMessageableByJid($jid);
 $msgs = $con->getMessages();
 
 $start = Utils::getMonday($msgs[0]->getTimestamp()->getTimestamp());
@@ -12,7 +12,7 @@ $end = Utils::getMonday(time() + 7*24*60*60);
 $time = $start;
 $me = [];
 while($time <= $end) {
-  $me[Utils::getMonday($time)] = 0;
+  $me[Utils::getMonday($time)] = [];
   $time += 7 * 24 * 60 * 60;
 }
 
@@ -26,19 +26,19 @@ foreach($msgs as $msg) {
     $arr = &$them;
   }
   $ts = Utils::getMonday($msg->getTimestamp()->getTimestamp());
-  $arr[$ts]++;
+  $arr[$ts][] = strlen($msg->getData());
 }
 
 foreach ($me as $ts => $v) {
   $me[$ts] = [
-    "y" => $v,
+    "y" => count($v) == 0 ? 0 : round(array_sum($v) / count($v), 3),
     "x" => $ts * 1000
   ];
 }
 
 foreach ($them as $ts => $v) {
   $them[$ts] = [
-    "y" => $v,
+    "y" => count($v) == 0 ? 0 : round(array_sum($v) / count($v), 3),
     "x" => $ts*1000
   ];
 }

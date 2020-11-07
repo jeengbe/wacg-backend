@@ -31,6 +31,9 @@ class Utils {
    * @return int
    */
   static function getMonday($ts) {
+    if (date("N", $ts) == 1) {
+      return strtotime("last monday", strtotime("sunday this week", $ts));
+    }
     return strtotime("last monday", $ts);
   }
 }
