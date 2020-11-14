@@ -2,7 +2,7 @@
 header("Access-Control-Allow-Origin: *");
 ?>
 <?php
-  date_default_timezone_set("UTC");
+  date_default_timezone_set("CET");
   include __DIR__."/colors.php";
   include __DIR__."/utils.php";
   include __DIR__."/wa.php";
