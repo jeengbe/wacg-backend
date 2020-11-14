@@ -4,7 +4,7 @@ foreach (WA::getContacts() as $con) {
     "jid" => $con->getJid(),
     "displayName" => $con->getDisplayName(),
     "info" => $con->getNum(),
-    "type" => "group"
+    "type" => "contact"
   ];
 }
 foreach (WA::getGroups() as $grp) {
@@ -12,7 +12,7 @@ foreach (WA::getGroups() as $grp) {
     "jid" => $grp->getJid(),
     "displayName" => $grp->getDisplayName(),
     "info" => $grp->getDescription(),
-    "type" => "contact"
+    "type" => "group"
   ];
 }
 $data = array_values($data);

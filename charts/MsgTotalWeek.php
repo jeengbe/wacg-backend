@@ -6,8 +6,11 @@ $sets = $_POST["sets"] - 1;
 $con = WA::getMessageableByJid($jid);
 $msgs = $con->getMessages();
 
-$start = Utils::getMonday($msgs[0]->getTimestamp()->getTimestamp());
-$end = Utils::getMonday(time() + 7 * 24 * 60 * 60);
+$start = Utils::getMonday($msgs[0]->getTimestamp()->getTimestamp() - 7 * 24 * 60 * 60);
+$end = Utils::getMonday(time()/* + 7 * 24 * 60 * 60*/);
+if ($options["end"] !== null) {
+  $end = Utils::getMonday($options["end"]);
+}
 
 $time = $start;
 $me = [];
@@ -42,9 +45,9 @@ foreach ($them as $ts => $v) {
   ];
 }
 
-Utils::addDataset($data["datasets"], $con->getDisplayName(), COLORS[$sets % (count(COLORS) - 1)][0][0], COLORS[$sets % (count(COLORS) - 1)][0][1], $them);
+Utils::addDataset($data["datasets"], $con->getDisplayName(), COLORS[$sets % count(COLORS)][0][0], COLORS[$sets % count(COLORS)][0][1], $them);
 if ($options["separate"]) {
-  Utils::addDataset($data["datasets"], ME, COLORS[$sets % (count(COLORS) - 1)][1][0], COLORS[$sets % (count(COLORS) - 1)][1][1], $me);
+  Utils::addDataset($data["datasets"], ME, COLORS[$sets % count(COLORS)][1][0], COLORS[$sets % count(COLORS)][1][1], $me);
 }
 
 $data["date"] = MsgStore::getDate()->format("c");

@@ -28,9 +28,9 @@ foreach($msgs as $msg) {
   $arr[$ts]++;
 }
 
-Utils::addDataset($data["datasets"], $con->getDisplayName(), COLORS[$sets % (count(COLORS) - 1)][0][0], COLORS[$sets % (count(COLORS) - 1)][0][1], $them);
+Utils::addDataset($data["datasets"], $con->getDisplayName(), COLORS[$sets % count(COLORS)][0][0], COLORS[$sets % count(COLORS)][0][1], $them);
 if ($options["separate"]) {
-  Utils::addDataset($data["datasets"], ME, COLORS[$sets % (count(COLORS) - 1)][1][0], COLORS[$sets % (count(COLORS) - 1)][1][1], $me);
+  Utils::addDataset($data["datasets"], ME, COLORS[$sets % count(COLORS)][1][0], COLORS[$sets % count(COLORS)][1][1], $me);
 }
 
 $data["date"] = MsgStore::getDate()->format("c");

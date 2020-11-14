@@ -12,7 +12,9 @@ header("Access-Control-Allow-Origin: *");
   const ME = "Jesper";
   // Separate them and me
   $options = [
-    "separate" => false
+    "separate" => true,
+    "start" => null,
+    "end" => null
   ];
 
   $options = array_merge(json_decode($_POST["options"] ?? "{}", true), $options);

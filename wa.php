@@ -150,8 +150,28 @@ class MsgStore {
    * @return Message[]
    */
   static function getMessagesWithJid($jid, $messages) {
+    global $options;
     $r = [];
-    $sql = self::$db->query("SELECT msg.timestamp as timestamp, data, key_from_me as me FROM messages as msg WHERE key_remote_jid = '$jid' AND msg.status NOT IN (6) ORDER BY msg._id ASC" . ($messages != -1 ? " LIMIT $messages" : ""));
+    $limit = $timeinterval = "";
+
+    if($messages != -1) {
+      $limit = " LIMIT $messages";
+    }
+    if($options["start"] !== null || $options["end"] !== null) {
+      $timeinterval = " AND ";
+      if($options["start"] !== null) {
+        $timeinterval .= "timestamp > " . ($options["start"] * 1000);
+        if($options["end"] !== null) {
+          $timeinterval .= " AND ";
+        }
+      }
+      if($options["end"] !== null) {
+        $timeinterval .= "timestamp < " . ($options["end"] * 1000);
+      }
+    }
+
+    $sql = self::$db->query("SELECT msg.timestamp as timestamp, data, key_from_me as me FROM messages as msg WHERE key_remote_jid = '$jid' AND msg.status NOT IN (6)$timeinterval ORDER BY msg._id ASC$limit");
+
     while ($row = $sql->fetchArray()) {
       $r[] = new Message($row);
     }
