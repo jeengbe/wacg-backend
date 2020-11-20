@@ -1,7 +1,7 @@
 <?php
 
 $jid = $_POST["jid"];
-$sets = $_POST["sets"] - 1;
+$sets = ($_POST["sets"] - 1) / ($options["separate"] ? 2 : 1);
 
 $con = WA::getMessageableByJid($jid);
 $msgs = $con->getMessages();

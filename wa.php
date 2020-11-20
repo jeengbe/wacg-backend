@@ -170,7 +170,7 @@ class MsgStore {
       }
     }
 
-    $sql = self::$db->query("SELECT msg.timestamp as timestamp, data, key_from_me as me FROM messages as msg WHERE key_remote_jid = '$jid' AND msg.status NOT IN (6)$timeinterval ORDER BY msg._id ASC$limit");
+    $sql = self::$db->query("SELECT msg.timestamp as timestamp, msg.receipt_device_timestamp as receivedTimestamp, msg.read_device_timestamp as readTimestamp, data, key_from_me as me FROM messages as msg WHERE key_remote_jid = '$jid' AND msg.status NOT IN (6)$timeinterval ORDER BY msg._id ASC$limit");
 
     while ($row = $sql->fetchArray()) {
       $r[] = new Message($row);
@@ -294,6 +294,10 @@ class Group extends Messageable {
 class Message {
   /** @var DateTime */
   protected $timestamp;
+  /** @var DateTime */
+  protected $received;
+  /** @var DateTime */
+  protected $read;
   /** @var boolean */
   protected $me;
   /** @var string */
@@ -301,7 +305,15 @@ class Message {
 
   function __construct($row) {
     $this->timestamp    = new DateTime();
-    $this->timestamp->setTimestamp($row["timestamp"] / 1000);
+    $this->timestamp    ->setTimestamp($row["timestamp"] / 1000);
+    $this->received     = new DateTime();
+    if($row["receivedTimestamp"] == -1) {
+      $this->received     ->setTimestamp($row["readTimestamp"] / 1000);
+    } else {
+      $this->received     ->setTimestamp($row["receivedTimestamp"] / 1000);
+    }
+    $this->read         = new DateTime();
+    $this->read         ->setTimestamp($row["readTimestamp"] / 1000);
     $this->me           = (bool) $row["me"];
     $this->data         = $row["data"];
   }
@@ -311,6 +323,20 @@ class Message {
    */
   function getTimestamp() {
     return $this->timestamp;
+  }
+
+  /**
+   * @return DateTime
+   */
+  function getReceived() {
+    return $this->received;
+  }
+
+  /**
+   * @return DateTime
+   */
+  function getRead() {
+    return $this->read;
   }
 
   /**

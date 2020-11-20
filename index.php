@@ -2,7 +2,6 @@
 header("Access-Control-Allow-Origin: *");
 ?>
 <?php
-  date_default_timezone_set("CET");
   include __DIR__."/colors.php";
   include __DIR__."/utils.php";
   include __DIR__."/wa.php";
@@ -17,7 +16,9 @@ header("Access-Control-Allow-Origin: *");
     "end" => null
   ];
 
-  $options = array_merge(json_decode($_POST["options"] ?? "{}", true), $options);
+  // $options["start"] = strtotime("10. Nov. 2020");
+
+  $options = array_merge($options, json_decode($_POST["options"] ?? "{}", true));
 
   if(isset($_GET["url"])) {
     $url = explode("/", $_GET["url"]);
@@ -29,6 +30,11 @@ header("Access-Control-Allow-Origin: *");
       default:
         if(preg_match("/^[a-zA-Z0-9_-]+$/", $url[0]) === 1) {
           $inc = "charts/{$url[0]}.php";
+        }
+        if(substr($url[0], -4) == "Week") {
+          date_default_timezone_set("UTC");
+        } else {
+          date_default_timezone_set("CET");
         }
         break;
     }

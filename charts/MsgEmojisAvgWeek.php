@@ -29,7 +29,7 @@ foreach($msgs as $msg) {
     $arr = &$them;
   }
   $ts = Utils::getMonday($msg->getTimestamp()->getTimestamp());
-  $arr[$ts][] = strlen($msg->getData());
+  $arr[$ts][] = Utils::nrEmojis($msg->getData());
 }
 
 foreach ($me as $ts => $v) {
